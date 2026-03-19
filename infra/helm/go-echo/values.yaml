@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/kiukairor/go-echo
   pullPolicy: IfNotPresent
-  tag: "sha-62a235b"
+  tag: "sha-dd33657"
 
 imagePullSecrets:
   - name: ghcr-secret
