@@ -16,7 +16,7 @@ env:
   PORT: "8080"
   OTEL_SERVICE_NAME: "go-echo-prod"
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp.nr-data.net"
-  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment.name=laberry-prod"
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment.name=laberry-prod,tags.team=crazy-team,tags.environment=laberry-prod,tags.cluster=pi-cluster,tags.josename=Jose"
 
 secrets:
   newrelic: newrelic-secret
