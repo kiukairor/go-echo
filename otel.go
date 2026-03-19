@@ -8,8 +8,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/resource"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
@@ -34,7 +34,7 @@ func otelConfig() (endpoint, licenseKey, serviceName, serviceEnv string) {
 func newResource(serviceName, serviceEnv string) *resource.Resource {
 	attrs := []attribute.KeyValue{
 		semconv.ServiceNameKey.String(serviceName),
-		semconv.DeploymentEnvironmentKey.String(serviceEnv),
+		attribute.String("deployment.environment.name", serviceEnv),
 	}
 	if pod := os.Getenv("K8S_POD_NAME"); pod != "" {
 		attrs = append(attrs, semconv.K8SPodNameKey.String(pod))
