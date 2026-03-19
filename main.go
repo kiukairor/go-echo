@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"go.opentelemetry.io/otel"
 )
 
 type Item struct {
@@ -15,7 +18,10 @@ type Item struct {
 	Enriched bool   `json:"enriched"`
 }
 
-func validateItem(item *Item) error {
+func validateItem(ctx context.Context, item *Item) error {
+	_, span := otel.Tracer("go-echo").Start(ctx, "validateItem")
+	defer span.End()
+
 	if item.Name == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -25,23 +31,37 @@ func validateItem(item *Item) error {
 	return nil
 }
 
-func enrichItem(item *Item) {
+func enrichItem(ctx context.Context, item *Item) {
+	_, span := otel.Tracer("go-echo").Start(ctx, "enrichItem")
+	defer span.End()
+
 	item.Enriched = true
 }
 
-func processItem(item *Item) error {
-	if err := validateItem(item); err != nil {
+func processItem(ctx context.Context, item *Item) error {
+	ctx, span := otel.Tracer("go-echo").Start(ctx, "processItem")
+	defer span.End()
+
+	if err := validateItem(ctx, item); err != nil {
 		return err
 	}
-	enrichItem(item)
+	enrichItem(ctx, item)
 	return nil
 }
 
 func main() {
+	ctx := context.Background()
+	tp, err := initTracer(ctx)
+	if err != nil {
+		panic(err)
+	}
+	defer tp.Shutdown(ctx)
+
 	e := echo.New()
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(otelecho.Middleware("go-echo"))
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "service": "go-echo"})
@@ -56,7 +76,7 @@ func main() {
 		if err := c.Bind(item); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 		}
-		if err := processItem(item); err != nil {
+		if err := processItem(c.Request().Context(), item); err != nil {
 			return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		}
 		return c.JSON(http.StatusCreated, item)

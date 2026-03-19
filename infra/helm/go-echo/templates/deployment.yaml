@@ -27,6 +27,11 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
             {{- end }}
+            - name: NEW_RELIC_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.newrelic }}
+                  key: license-key
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:

@@ -14,6 +14,12 @@ service:
 
 env:
   PORT: "8080"
+  OTEL_SERVICE_NAME: "go-echo"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp.nr-data.net"
+  SERVICE_ENV: "production"
+
+secrets:
+  newrelic: newrelic-secret
 
 resources:
   requests:
