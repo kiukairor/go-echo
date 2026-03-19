@@ -31,7 +31,7 @@ func otelConfig() (endpoint, licenseKey, serviceName, serviceEnv string) {
 	return
 }
 
-func newResource(serviceName, serviceEnv string) *resource.Resource {
+func newResource(ctx context.Context, serviceName, serviceEnv string) (*resource.Resource, error) {
 	attrs := []attribute.KeyValue{
 		semconv.ServiceNameKey.String(serviceName),
 		attribute.String("deployment.environment.name", serviceEnv),
@@ -45,7 +45,12 @@ func newResource(serviceName, serviceEnv string) *resource.Resource {
 	if node := os.Getenv("K8S_NODE_NAME"); node != "" {
 		attrs = append(attrs, semconv.K8SNodeNameKey.String(node))
 	}
-	return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
+	// WithAttributes sets code defaults; WithFromEnv reads OTEL_RESOURCE_ATTRIBUTES
+	// and takes precedence over code-defined values when keys overlap.
+	return resource.New(ctx,
+		resource.WithAttributes(attrs...),
+		resource.WithFromEnv(),
+	)
 }
 
 func initTracer(ctx context.Context) (*sdktrace.TracerProvider, error) {
@@ -61,9 +66,14 @@ func initTracer(ctx context.Context) (*sdktrace.TracerProvider, error) {
 		return nil, err
 	}
 
+	res, err := newResource(ctx, serviceName, serviceEnv)
+	if err != nil {
+		return nil, err
+	}
+
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
-		sdktrace.WithResource(newResource(serviceName, serviceEnv)),
+		sdktrace.WithResource(res),
 	)
 	otel.SetTracerProvider(tp)
 	return tp, nil
@@ -82,9 +92,14 @@ func initMeter(ctx context.Context) (*sdkmetric.MeterProvider, error) {
 		return nil, err
 	}
 
+	res, err := newResource(ctx, serviceName, serviceEnv)
+	if err != nil {
+		return nil, err
+	}
+
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter)),
-		sdkmetric.WithResource(newResource(serviceName, serviceEnv)),
+		sdkmetric.WithResource(res),
 	)
 	otel.SetMeterProvider(mp)
 	return mp, nil
