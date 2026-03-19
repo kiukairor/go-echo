@@ -14,7 +14,7 @@ service:
 
 env:
   PORT: "8080"
-  OTEL_SERVICE_NAME: "go-echo"
+  OTEL_SERVICE_NAME: "go-echo-prod"
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp.nr-data.net"
   OTEL_RESOURCE_ATTRIBUTES: "deployment.environment.name=laberry-prod"
 
