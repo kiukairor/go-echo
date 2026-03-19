@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -9,8 +10,31 @@ import (
 )
 
 type Item struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	Enriched bool   `json:"enriched"`
+}
+
+func validateItem(item *Item) error {
+	if item.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if item.Value == "" {
+		return fmt.Errorf("value is required")
+	}
+	return nil
+}
+
+func enrichItem(item *Item) {
+	item.Enriched = true
+}
+
+func processItem(item *Item) error {
+	if err := validateItem(item); err != nil {
+		return err
+	}
+	enrichItem(item)
+	return nil
 }
 
 func main() {
@@ -31,6 +55,9 @@ func main() {
 		item := new(Item)
 		if err := c.Bind(item); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
+		if err := processItem(item); err != nil {
+			return c.JSON(http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		}
 		return c.JSON(http.StatusCreated, item)
 	})
