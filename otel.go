@@ -30,7 +30,7 @@ func initTracer(ctx context.Context) (*sdktrace.TracerProvider, error) {
 	}
 
 	exporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint(endpoint),
+		otlptracehttp.WithEndpointURL(endpoint),
 		otlptracehttp.WithHeaders(map[string]string{
 			"api-key": licenseKey,
 		}),

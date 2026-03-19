@@ -32,7 +32,7 @@ go-echo/
 |--------|----------|------------------------------------|
 | GET    | /health  | Health check → `{"status":"ok"}`   |
 | GET    | /hello   | Returns `Hello, World!`            |
-| POST   | /items   | Echoes back `{"name":"","value":""}` as JSON |
+| POST   | /items   | Validates + enriches `{"name":"","value":""}` → returns `{"name":"","value":"","enriched":true}` with HTTP 201; HTTP 422 if `name` or `value` missing |
 
 ## GitOps Flow
 

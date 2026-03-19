@@ -23,6 +23,8 @@ check() {
   fi
 }
 
+LOAD_ROUNDS="${2:-30}"
+
 echo "Smoke testing $BASE_URL"
 echo "---"
 
@@ -54,6 +56,22 @@ body=$(echo "$response" | head -n1)
 status=$(echo "$response" | tail -n1)
 check "POST /items (second)" 201 "$status" "$body"
 
+# POST /items — missing name (expect 422)
+response=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/items" \
+  -H "Content-Type: application/json" \
+  -d '{"value":"42"}')
+body=$(echo "$response" | head -n1)
+status=$(echo "$response" | tail -n1)
+check "POST /items (missing name)" 422 "$status" "$body"
+
+# POST /items — missing value (expect 422)
+response=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/items" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"widget"}')
+body=$(echo "$response" | head -n1)
+status=$(echo "$response" | tail -n1)
+check "POST /items (missing value)" 422 "$status" "$body"
+
 # POST /items — bad content type (expect 400 or 415)
 response=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/items" \
   -H "Content-Type: text/plain" \
@@ -67,6 +85,31 @@ else
   red "POST /items (bad content-type) — expected 4xx, got HTTP $status — $body"
   FAIL=$((FAIL + 1))
 fi
+
+echo "---"
+echo "Load: $LOAD_ROUNDS rounds across all endpoints for New Relic visibility..."
+
+names=("widget" "gadget" "sensor" "probe" "device")
+values=("42" "hello" "true" "99" "test")
+
+for i in $(seq 1 "$LOAD_ROUNDS"); do
+  name="${names[$((i % ${#names[@]}))]}"
+  value="${values[$((i % ${#values[@]}))]}"
+
+  curl -s -o /dev/null "$BASE_URL/health"
+  curl -s -o /dev/null "$BASE_URL/hello"
+  curl -s -o /dev/null -X POST "$BASE_URL/items" \
+    -H "Content-Type: application/json" \
+    -d "{\"name\":\"$name\",\"value\":\"$value\"}"
+  # sprinkle in some errors for error-rate visibility
+  if [ $((i % 5)) -eq 0 ]; then
+    curl -s -o /dev/null -X POST "$BASE_URL/items" \
+      -H "Content-Type: application/json" \
+      -d "{\"name\":\"$name\"}"
+  fi
+done
+
+printf "\033[0;32m✓ Load complete (%d rounds)\033[0m\n" "$LOAD_ROUNDS"
 
 echo "---"
 echo "Results: $PASS passed, $FAIL failed"
